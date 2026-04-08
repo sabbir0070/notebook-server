@@ -9,24 +9,6 @@ const errorHandler = require('./middleware/errorHandler');
 // Load env vars
 dotenv.config();
 
-// Connect to database
-const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect(process.env.MONGO_URI);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-  } catch (err) {
-    console.error(`Error connecting to MongoDB: ${err.message}`);
-    process.exit(1);
-  }
-};
-connectDB();
-
-// Route files
-const auth = require('./routes/auth');
-const notes = require('./routes/notes');
-const categories = require('./routes/categories');
-const accounts = require('./routes/accounts');
-
 const app = express();
 
 // Body parser
@@ -45,6 +27,12 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
+// Route files
+const auth = require('./routes/auth');
+const notes = require('./routes/notes');
+const categories = require('./routes/categories');
+const accounts = require('./routes/accounts');
+
 // Mount routers
 app.use('/api/auth', auth);
 app.use('/api/notes', notes);
@@ -58,16 +46,33 @@ app.get('/', (req, res) => {
   res.send('Smart Notebook API is running...');
 });
 
-const PORT = process.env.PORT || 5000;
+// Connect to MongoDB (cached for serverless reuse)
+let isConnected = false;
+const connectDB = async () => {
+  if (isConnected) return;
+  try {
+    const conn = await mongoose.connect(process.env.MONGO_URI);
+    isConnected = true;
+    console.log(`MongoDB Connected: ${conn.connection.host}`);
+  } catch (err) {
+    console.error(`Error connecting to MongoDB: ${err.message}`);
+    // Do NOT call process.exit(1) in serverless — it crashes the function
+  }
+};
 
-const server = app.listen(
-  PORT,
-  console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`)
-);
-
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err, promise) => {
-  console.log(`Error: ${err.message}`);
-  // Close server & exit process
-  server.close(() => process.exit(1));
+// Middleware to ensure DB is connected before every request
+app.use(async (req, res, next) => {
+  await connectDB();
+  next();
 });
+
+// For local development: listen on PORT
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () =>
+    console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`)
+  );
+}
+
+// Export for Vercel serverless
+module.exports = app;
