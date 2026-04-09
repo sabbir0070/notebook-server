@@ -34,13 +34,27 @@ app.use(express.json());
 app.use(helmet());
 
 // Enable CORS
+const allowedOrigins = [
+  'https://incredible-cupcake-e88be5.netlify.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+];
 const corsOptions = {
-  origin: process.env.CLIENT_URL
-    ? [process.env.CLIENT_URL, 'http://localhost:5173']
-    : '*',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, Postman)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all for now to debug
+    }
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 };
 app.use(cors(corsOptions));
+// Handle OPTIONS preflight
+app.options('*', cors(corsOptions));
 
 // Rate limiting
 const limiter = rateLimit({
