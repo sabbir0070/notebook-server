@@ -53,8 +53,6 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 app.use(cors(corsOptions));
-// Handle OPTIONS preflight
-app.options('(.*)', cors(corsOptions));
 
 // Rate limiting
 const limiter = rateLimit({
