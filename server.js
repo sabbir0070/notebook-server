@@ -34,7 +34,13 @@ app.use(express.json());
 app.use(helmet());
 
 // Enable CORS
-app.use(cors());
+const corsOptions = {
+  origin: process.env.CLIENT_URL
+    ? [process.env.CLIENT_URL, 'http://localhost:5173']
+    : '*',
+  credentials: true,
+};
+app.use(cors(corsOptions));
 
 // Rate limiting
 const limiter = rateLimit({
