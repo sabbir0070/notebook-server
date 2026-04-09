@@ -4,13 +4,17 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 
 // Generate JWT tokens
+// Generate JWT tokens
 const generateTokens = (id) => {
-  const accessToken = jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN,
+  const jwtSecret = process.env.JWT_SECRET || 'smart_notebook_jwt_secret_fallback_key_2024';
+  const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || 'smart_notebook_refresh_fallback_secret_key_2024';
+
+  const accessToken = jwt.sign({ id }, jwtSecret, {
+    expiresIn: process.env.JWT_EXPIRES_IN || '15m',
   });
   
-  const refreshToken = jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, {
-    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN,
+  const refreshToken = jwt.sign({ id }, jwtRefreshSecret, {
+    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   });
 
   return { accessToken, refreshToken };
